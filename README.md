@@ -10,3 +10,7 @@ edge01.  A vyOS Firewall with three interfaces (WAN, DMZ, LAN).  You will need t
 nginx01.  A DMZ based nginx web server running Ubuntu (this replaces web01 and apache)
 
 dhcp01.  A LAN based dhcp server running Ubuntu
+
+
+
+Phase 1: Connections
