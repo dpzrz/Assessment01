@@ -14,3 +14,5 @@ dhcp01.  A LAN based dhcp server running Ubuntu
 
 
 # Phase 1: Connections
+
+# Phase 2: Services
