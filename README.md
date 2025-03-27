@@ -16,3 +16,20 @@ dhcp01.  A LAN based dhcp server running Ubuntu
 # Phase 1: Connections
 
 # Phase 2: Services
+
+ngix install
+
+```
+sudo apt update
+sudo apt install nginx
+```
+
+```
+sudo ufw app list
+```
+
+```
+sudo ufw allow 'Nginx HTTP'
+```
+
+Web page asccessible at http://`serverIP`
