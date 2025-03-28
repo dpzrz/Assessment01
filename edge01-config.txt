@@ -32,7 +32,7 @@ firewall {
         }
         rule 999 {
             action accept
-            description "temp allow all outbound from nginx to WAN"
+            description "Allow outbound nginx to WAN"
             disable
             source {
                 address 172.16.50.3
