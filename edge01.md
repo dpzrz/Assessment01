@@ -1,1 +1,339 @@
 
+firewall {
+    name DMZ-to-LAN {
+        default-action drop
+        enable-default-log
+        rule 1 {
+            action accept
+            state {
+                established enable
+                related enable
+            }
+        }
+        rule 10 {
+            action accept
+            description "wazuh agent comm with wazuh server"
+            destination {
+                address 172.16.200.10
+                port 1514,1515
+            }
+            protocol tcp
+        }
+    }
+    name DMZ-to-WAN {
+        default-action drop
+        enable-default-log
+        rule 1 {
+            action accept
+            state {
+                established enable
+                related enable
+            }
+        }
+        rule 999 {
+            action accept
+            description "temp allow all outbound from nginx to WAN"
+            disable
+            source {
+                address 172.16.50.3
+            }
+        }
+    }
+    name LAN-to-DMZ {
+        default-action drop
+        enable-default-log
+        rule 1 {
+            action accept
+            state {
+                established enable
+                related enable
+            }
+        }
+        rule 2 {
+            action accept
+            destination {
+                address 172.16.50.3
+                port 80
+            }
+            protocol tcp
+        }
+        rule 3 {
+            action accept
+            destination {
+                port 22
+            }
+            protocol tcp
+            source {
+                address 172.16.150.10
+            }
+        }
+    }
+    name LAN-to-WAN {
+        default-action drop
+        enable-default-log
+        rule 1 {
+            action accept
+        }
+    }
+    name WAN-to-DMZ {
+        default-action drop
+        enable-default-log
+        rule 1 {
+            action accept
+            state {
+                established enable
+                related enable
+            }
+        }
+        rule 10 {
+            action accept
+            description "Allow HTTP from WAN to DMZ"
+            destination {
+                address 172.16.50.3
+                port 80
+            }
+            protocol tcp
+        }
+        rule 20 {
+            action accept
+            description "ssh to jump server"
+            destination {
+                port 22
+            }
+            protocol tcp
+        }
+    }
+    name WAN-to-LAN {
+        default-action drop
+        enable-default-log
+        rule 1 {
+            action accept
+            state {
+                established enable
+                related enable
+            }
+        }
+    }
+}
+interfaces {
+    ethernet eth0 {
+        address 10.0.17.163/24
+        description SEC350-WAN
+    }
+    ethernet eth1 {
+        address 172.16.50.2/29
+        description SEC350-DMZ
+    }
+    ethernet eth2 {
+        address 172.16.150.2/24
+        description SEC350-LAN
+    }
+    }
+}
+nat {
+    destination {
+        rule 10 {
+            description "HTTP to nginx"
+            destination {
+                port 80
+            }
+            inbound-interface eth0
+            protocol tcp
+            translation {
+                address 172.16.50.3
+                port 80
+            }
+        }
+        rule 20 {
+            description "SSH to jump"
+            destination {
+                port 22
+            }
+            inbound-interface eth0
+            protocol tcp
+            translation {
+                address 172.16.50.4
+                port 22
+            }
+        }
+        rule 80 {
+            description "HTTP to nginx"
+            destination {
+                port 80
+            }
+            inbound-interface eth0
+            protocol tcp
+            translation {
+                address 172.16.50.3
+                port 80
+            }
+        }
+    }
+    source {
+        rule 10 {
+            description "NAT FROM DMZ to WAN"
+            outbound-interface eth0
+            source {
+                address 172.16.50.0/29
+            }
+            translation {
+                address masquerade
+            }
+        }
+        rule 11 {
+            description "NAT FROM LAN to WAN"
+            outbound-interface eth0
+            source {
+                address 172.16.150.0/24
+            }
+            translation {
+                address masquerade
+            }
+        }
+        rule 12 {
+            description "NAT from DMZ ro WAN"
+            outbound-interface eth0
+            source {
+                address 172.16.50.0/29
+            }
+            translation {
+                address masquerade
+            }
+        }
+        rule 20 {
+            description "NAT FROM LAN to WAN"
+            outbound-interface eth0
+            source {
+                address 172.16.150.0/24
+            }
+            translation {
+                address masquerade
+            }
+        }
+        rule 30 {
+            description "NAT FROM MGMT to WAN"
+            outbound-interface eth0
+            source {
+                address 172.16.200.0/28
+            }
+            translation {
+                address masquerade
+            }
+        }
+    }
+}
+protocols {
+    rip {
+        interface eth2 {
+        }
+        network 172.16.50.0/29
+    }
+    static {
+        route 0.0.0.0/0 {
+            next-hop 10.0.17.2 {
+            }
+        }
+    }
+}
+service {
+    dns {
+        forwarding {
+            allow-from 172.16.150.0/24
+            allow-from 172.16.50.0/29
+            listen-address 172.16.150.2
+            listen-address 172.16.50.2
+            system
+        }
+    }
+    ssh {
+        listen-address 0.0.0.0
+        listen-address 172.16.150.2
+    }
+}
+system {
+        commit-revisions 100
+    }
+        modules {
+            ftp
+            h323
+            nfs
+            pptp
+            sip
+            sqlnet
+            tftp
+        }
+    }
+    console {
+        device ttyS0 {
+            speed 115200
+        }
+    }
+    host-name edge01-diego
+    login {
+        user vyos {
+            authentication {
+                encrypted-password ****************
+                plaintext-password ****************
+            }
+        }
+    }
+    name-server 10.0.17.2
+        server time1.vyos.net {
+        }
+        server time2.vyos.net {
+        }
+        server time3.vyos.net {
+        }
+    }
+    syslog {
+        global {
+            facility all {
+                level info
+            }
+            facility protocols {
+                level debug
+            }
+        }
+    }
+}
+zone-policy {
+    zone DMZ {
+        from LAN {
+            firewall {
+                name LAN-to-DMZ
+            }
+        }
+        from WAN {
+            firewall {
+                name WAN-to-DMZ
+            }
+        }
+        interface eth1
+    }
+    zone LAN {
+        from DMZ {
+            firewall {
+                name DMZ-to-LAN
+            }
+        }
+        from WAN {
+            firewall {
+                name WAN-to-LAN
+            }
+        }
+        interface eth2
+    }
+    zone WAN {
+        from DMZ {
+            firewall {
+                name DMZ-to-WAN
+            }
+        }
+        from LAN {
+            firewall {
+                name LAN-to-WAN
+            }
+        }
+        interface eth0
+    }
+}
