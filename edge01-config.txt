@@ -152,7 +152,7 @@ nat {
             inbound-interface eth0
             protocol tcp
             translation {
-                address 172.16.50.4
+                address 172.16.200.10
                 port 22
             }
         }
